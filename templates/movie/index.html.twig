@@ -1,0 +1,56 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <h1>Movies</h1>
+
+    {% if movies %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Description</th>
+                    <th>Author</th>
+                    <th>Created At</th>
+                    <th>Likes</th>
+                    <th>Dislikes</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for movie in movies %}
+                    <tr>
+                        <td>{{ movie.title }}</td>
+                        <td>{{ movie.description }}</td>
+                        <td>{{ movie.user.name }}</td>
+                        <td>{{ movie.createdAt|date('Y-m-d H:i') }}</td>
+                        <td>
+                            {% set likes = movie.reactions|filter(r => r.type == 'like')|length %}
+                            {{ likes }}
+                        </td>
+                        <td>
+                            {% set dislikes = movie.reactions|filter(r => r.type == 'dislike')|length %}
+                            {{ dislikes }}
+                        </td>
+                        <td>
+                            {% if app.user %}
+                                <form action="{{ path('movie_react') }}" method="post">
+                                    <input type="hidden" name="movie_id" value="{{ movie.id }}">
+                                    <button type="submit" name="reaction" value="like">Like</button>
+                                    <button type="submit" name="reaction" value="dislike">Dislike</button>
+                                </form>
+                            {% else %}
+                                <p><a href="{{ path('app_login') }}">Login to react</a></p>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="pagination">
+            {{ knp_pagination_render(movies) }}
+        </div>
+    {% else %}
+        <p>No movies found.</p>
+    {% endif %}
+{% endblock %}

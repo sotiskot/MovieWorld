@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Movie App{% endblock %}</title>
+    <!-- Include your stylesheets here -->
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a href="{{ path('movie_index') }}">Home</a></li>
+
+            {% if is_granted('ROLE_USER') %}
+                <li><a href="{{ path('movie_create') }}">Create Movie</a></li>
+                <li><a href="{{ path('app_logout') }}">Logout</a></li>
+            {% else %}
+                <li><a href="{{ path('app_login') }}">Login</a></li>
+                <li><a href="{{ path('app_register') }}">Register</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <div class="container">
+        {% block body %}{% endblock %}
+    </div>
+</body>
+</html>

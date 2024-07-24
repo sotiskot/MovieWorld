@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Service\MovieApiService;
 use App\Entity\Movie;
 use App\Entity\MovieReaction;
 use App\Form\MovieType;
@@ -17,6 +18,13 @@ use Knp\Component\Pager\PaginatorInterface;
 
 class MovieController extends AbstractController
 {
+    private MovieApiService $movieApiService;
+
+    public function __construct(MovieApiService $movieApiService)
+    {
+        $this->movieApiService = $movieApiService;
+    }
+
     #[Route('/', name: 'movie_index')]
     public function index(MovieRepository $movieRepository, PaginatorInterface $paginator, Request $request): Response
     {
@@ -37,28 +45,60 @@ class MovieController extends AbstractController
         ]);
     }
 
-    #[Route('/movies/create', name: 'movie_create')]
-    public function create(Request $request, EntityManagerInterface $em): Response
+    #[Route('/movies/search', name: 'movie_search', methods: ['GET', 'POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function search(Request $request): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_USER');
+        $query = $request->query->get('query', '');
+        $page = $request->query->getInt('page', 1);
 
-        $movie = new Movie();
-        $form = $this->createForm(MovieType::class, $movie);
-        $form->handleRequest($request);
+        if ($query) {
+            try {
+                $movies = $this->movieApiService->searchMovies($query, $page);
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'An error occurred: ' . $e->getMessage());
+                $movies = [];
+            }
 
-        if ($form->isSubmitted() && $form->isValid()) {
+            return $this->render('movie/search.html.twig', [
+                'movies' => $movies['results'] ?? [],
+                'query' => $query,
+                'page' => $page,
+                'total_pages' => $movies['total_pages'] ?? 1,
+            ]);
+        }
+
+        return $this->render('movie/search.html.twig', [
+            'movies' => [],
+            'query' => $query,
+        ]);
+    }
+
+    #[Route('/movies/create', name: 'movie_create', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function create(Request $request, EntityManagerInterface $entityManager): Response
+    {
+        $title = $request->request->get('title');
+        $description = $request->request->get('description');
+
+        if ($title && $description) {
+            $movie = new Movie();
+            $movie->setTitle($title);
+            $movie->setDescription($description);
             $movie->setCreatedAt(new \DateTime());
             $movie->setUser($this->getUser());
 
-            $em->persist($movie);
-            $em->flush();
+            $entityManager->persist($movie);
+            $entityManager->flush();
+
+            $this->addFlash('success', 'Movie added successfully.');
 
             return $this->redirectToRoute('movie_index');
         }
 
-        return $this->render('movie/create.html.twig', [
-            'form' => $form->createView(),
-        ]);
+        $this->addFlash('error', 'Invalid movie data.');
+
+        return $this->redirectToRoute('movie_search');
     }
 
     #[Route('/react', name: 'movie_react', methods: ['POST'])]

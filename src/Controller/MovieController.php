@@ -29,7 +29,9 @@ class MovieController extends AbstractController
     public function index(MovieRepository $movieRepository, PaginatorInterface $paginator, Request $request): Response
     {
         $sortBy = $request->query->get('sort', 'createdAt');
-        $query = $movieRepository->findAllSorted($sortBy);
+        $userId = $request->query->get('user');
+
+        $query = $movieRepository->findAllSorted($sortBy, $userId);
         $pagination = $paginator->paginate(
             $query,
             $request->query->getInt('page', 1),
@@ -40,6 +42,7 @@ class MovieController extends AbstractController
             'movies' => $pagination,
             'user' => $this->getUser(),
             'sort' => $sortBy,
+            'userId' => $userId
         ]);
     }
 

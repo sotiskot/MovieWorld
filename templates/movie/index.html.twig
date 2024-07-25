@@ -1,11 +1,12 @@
 {% extends 'base.html.twig' %}
 
-{% block body %}    
+{% block body %}
     <h1>Movies</h1>
 
     <div class="sort-options">
         <form method="get" action="{{ path('movie_index') }}" class="sort-form">
-        <label for="sort">Sort by:</label>
+            <input type="hidden" name="user" value="{{ userId }}">
+            <label for="sort">Sort by:</label>
             <select name="sort" id="sort" onchange="this.form.submit()">
                 <option value="createdAt" {% if sort == 'createdAt' %}selected{% endif %}>Newest</option>
                 <option value="createdAtAsc" {% if sort == 'createdAtAsc' %}selected{% endif %}>Oldest</option>
@@ -21,7 +22,6 @@
         {% if movies %}
             {% for movie in movies %}
                 <div class="card">
-
                     <div class="card-header">
                         <strong>{{ movie.title }}</strong>
                     </div>
@@ -34,12 +34,14 @@
                                 <input type="hidden" name="movie_id" value="{{ movie.id }}">
                                 {% set likes = movie.reactions|filter(r => r.type == 'like')|length %}
                                 <button type="submit" name="reaction" value="like" class="reaction-button like-button">
-                                    <div class="reaction-icon"><i class="fa fa-thumbs-up"></i></div><div class="reaction-count">{{ likes }}</div>
+                                    <div class="reaction-icon"><i class="fa fa-thumbs-up"></i></div>
+                                    <div class="reaction-count">{{ likes }}</div>
                                 </button>
-                                
+
                                 {% set dislikes = movie.reactions|filter(r => r.type == 'dislike')|length %}
                                 <button type="submit" name="reaction" value="dislike" class="reaction-button dislike-button">
-                                    <div class="reaction-icon"><i class="fa fa-thumbs-down"></i></div><div class="reaction-count">{{ dislikes }}</div>
+                                    <div class="reaction-icon"><i class="fa fa-thumbs-down"></i></div>
+                                    <div class="reaction-count">{{ dislikes }}</div>
                                 </button>
                             </form>
                         {% else %}
@@ -56,15 +58,14 @@
                         {% endif %}
                         <div>
                             <small class="date">{{ movie.createdAt|date('Y-m-d') }}</small>
-                            <small class="user">{{ movie.user.name }}</small>
+                            <small class="user"><a href="{{ path('movie_index', { user: movie.user.id, sort: sort }) }}">{{ movie.user.name }}</a></small>
                         </div>
                     </div>
                 </div>
             {% endfor %}
 
             <div class="pagination">
-                {% set movies = knp_pagination_render(movies)  %}
-                {{ movies }}
+                {{ knp_pagination_render(movies) }}
             </div>
         {% else %}
             <p>No movies found.</p>

@@ -16,12 +16,17 @@ class MovieRepository extends ServiceEntityRepository
         parent::__construct($registry, Movie::class);
     }
 
-    public function findAllSorted($sortBy)
+    public function findAllSorted($sortBy, $userId)
     {
         $qb = $this->createQueryBuilder("m")
             ->leftJoin("m.reactions", "r")
             ->addSelect("COUNT(r.id) AS HIDDEN num_reactions");
-    
+
+        if ($userId) {
+            $qb->where('m.user = :user')
+                ->setParameter('user', $userId);
+        }
+
         switch ($sortBy) {
             case "likesDesc":
                 $qb->addSelect("SUM(CASE WHEN r.type = 'like' THEN 1 ELSE 0 END) AS HIDDEN num_likes")

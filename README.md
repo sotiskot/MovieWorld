@@ -1,4 +1,4 @@
-Default settings MySQL
+Default settings MariaDB
 
 Create database named movieworld and run
 

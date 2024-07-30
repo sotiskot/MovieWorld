@@ -20,7 +20,7 @@ class MovieApiService
     {
         $response = $this->client->request('GET', $this->apiUrl . '/search/movie', [
             'headers' => [
-                'Authorization' => 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI5MWNkNzc0MDdhYjAwNTEzYjkyZWJkZjU4MDZhZDM4ZSIsIm5iZiI6MTcyMTgyOTQ2My40NjE0MDYsInN1YiI6IjY2YTEwN2JkNzczNmMzYzJlNjVkYWRkMSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.YwpQI2C82Q1SOb9_97w25mpoKWcB-PQF9zK5A5NiUf4',
+                'Authorization' => 'Bearer YOUR_www.themoviedb.org_API_KEY',
                 'Accept' => 'application/json',
             ],
             'query' => [

@@ -16,28 +16,49 @@ class MovieRepository extends ServiceEntityRepository
         parent::__construct($registry, Movie::class);
     }
 
-    //    /**
-    //     * @return Movie[] Returns an array of Movie objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('m')
-    //            ->andWhere('m.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('m.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    public function findAllSorted($sortBy, $userId)
+    {
+        $qb = $this->createQueryBuilder("m")
+            ->leftJoin("m.reactions", "r")
+            ->addSelect("COUNT(r.id) AS HIDDEN num_reactions");
 
-    //    public function findOneBySomeField($value): ?Movie
-    //    {
-    //        return $this->createQueryBuilder('m')
-    //            ->andWhere('m.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        if ($userId) {
+            $qb->where('m.user = :user')
+                ->setParameter('user', $userId);
+        }
+
+        switch ($sortBy) {
+            case "likesDesc":
+                $qb->addSelect("SUM(CASE WHEN r.type = 'like' THEN 1 ELSE 0 END) AS HIDDEN num_likes")
+                    ->groupBy("m.id")
+                    ->orderBy("num_likes", "DESC");
+                break;
+            case "likesAsc":
+                $qb->addSelect("SUM(CASE WHEN r.type = 'like' THEN 1 ELSE 0 END) AS HIDDEN num_likes")
+                    ->groupBy("m.id")
+                    ->orderBy("num_likes", "ASC");
+                break;
+            case "dislikesDesc":
+                $qb->addSelect("SUM(CASE WHEN r.type = 'dislike' THEN 1 ELSE 0 END) AS HIDDEN num_dislikes")
+                    ->groupBy("m.id")
+                    ->orderBy("num_dislikes", "DESC");
+                break;
+            case "dislikesAsc":
+                $qb->addSelect("SUM(CASE WHEN r.type = 'dislike' THEN 1 ELSE 0 END) AS HIDDEN num_dislikes")
+                    ->groupBy("m.id")
+                    ->orderBy("num_dislikes", "ASC");
+                break;
+            case "createdAtAsc":
+                $qb->groupBy("m.id")
+                    ->orderBy("m.createdAt", "ASC");
+                break;
+            case "createdAt":
+            default:
+                $qb->groupBy("m.id")
+                    ->orderBy("m.createdAt", "DESC");
+                break;
+        }
+    
+        return $qb->getQuery()->getResult();
+    }
 }

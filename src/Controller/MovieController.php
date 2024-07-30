@@ -28,20 +28,21 @@ class MovieController extends AbstractController
     #[Route('/', name: 'movie_index')]
     public function index(MovieRepository $movieRepository, PaginatorInterface $paginator, Request $request): Response
     {
-        $queryBuilder = $movieRepository->createQueryBuilder('m')
-            ->leftJoin('m.reactions', 'r')
-            ->addSelect('r');
+        $sortBy = $request->query->get('sort', 'createdAt');
+        $userId = $request->query->get('user');
 
-        $query = $queryBuilder->getQuery();
+        $query = $movieRepository->findAllSorted($sortBy, $userId);
         $pagination = $paginator->paginate(
             $query,
-            $request->query->getInt('page', 1), 
-            10 
+            $request->query->getInt('page', 1),
+            10
         );
-
+    
         return $this->render('movie/index.html.twig', [
             'movies' => $pagination,
-            'user' => $this->getUser()
+            'user' => $this->getUser(),
+            'sort' => $sortBy,
+            'userId' => $userId
         ]);
     }
 
@@ -76,14 +77,23 @@ class MovieController extends AbstractController
 
     #[Route('/movies/create', name: 'movie_create', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function create(Request $request, EntityManagerInterface $entityManager): Response
+    public function create(Request $request, MovieRepository $movieRepository, EntityManagerInterface $entityManager): Response
     {
         $title = $request->request->get('title');
+        $year = $request->request->get('year');
         $description = $request->request->get('description');
 
         if ($title && $description) {
+            $fullTitle = $title . ' (' . $year . ')';
+            $existingMovie = $movieRepository->findOneBy(['title' => $fullTitle, 'user' => $this->getUser()]);
+
+            if ($existingMovie) {
+                $this->addFlash('error', 'Movie Already exists.');
+                return $this->redirectToRoute('movie_search');
+            }
+
             $movie = new Movie();
-            $movie->setTitle($title);
+            $movie->setTitle($fullTitle);
             $movie->setDescription($description);
             $movie->setCreatedAt(new \DateTime());
             $movie->setUser($this->getUser());
@@ -106,8 +116,9 @@ class MovieController extends AbstractController
     {
         $movieId = $request->request->get('movie_id');
         $reactionType = $request->request->get('reaction');
-        
-        // Ensure the reaction type is valid
+
+
+
         if (!in_array($reactionType, ['like', 'dislike'])) {
             $this->addFlash('error', 'Invalid reaction type.');
             return $this->redirectToRoute('movie_index');
@@ -127,7 +138,11 @@ class MovieController extends AbstractController
             return $this->redirectToRoute('movie_index');
         }
 
-        // Check if the user has already reacted to this movie
+        if ($movie->getUser()->getId() === $user->getId()) {
+            $this->addFlash('error', 'You cannot react to your own movie.');
+            return $this->redirectToRoute('movie_index');
+        }
+
         $reactionRepository = $entityManager->getRepository(MovieReaction::class);
         $existingReaction = $reactionRepository->findOneBy([
             'movie' => $movie,
@@ -138,7 +153,6 @@ class MovieController extends AbstractController
             $entityManager->remove($existingReaction);
         }
 
-        // Add the new reaction
         $reaction = new MovieReaction();
         $reaction->setMovie($movie);
         $reaction->setUser($user);
